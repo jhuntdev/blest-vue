@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "blest-vue": "^0.0.1",
+    "blest-vue": "^0.0.2",
     "vue": "^3.3.2"
   },
   "devDependencies": {
