@@ -8,7 +8,7 @@ import Component4 from './components/Component4.vue'
 <template>
   <BlestProvider url='http://localhost:8080'>
     <div>
-      <h1>BLEST Vue Example</h1>
+      <h1 style="margin-top:0;">BLEST Vue Example</h1>
       <hr />
       <Component1 />
       <hr />
