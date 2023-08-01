@@ -60,7 +60,7 @@ export const BlestProvider = {
         }
         queue.value.push([id, route, params, selector])
         if (!timeout.value) {
-            timeout.value = setTimeout(process, bufferDelay)
+            timeout.value = setTimeout(() => { process() }, bufferDelay)
         }
     }
 
