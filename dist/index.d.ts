@@ -2,7 +2,12 @@ import { SetupContext } from 'vue';
 type BlestSelector = Array<string | BlestSelector>;
 interface BlestProviderProps {
     url: string;
-    options: any;
+    options: BlestProviderOptions;
+}
+interface BlestProviderOptions {
+    maxBatchSize?: number;
+    bufferDelay?: number;
+    headers?: any;
 }
 export declare const BlestProvider: {
     props: {
@@ -17,12 +22,17 @@ export declare const BlestProvider: {
     }>[];
 };
 export declare function blestContext(): unknown;
-export declare function blestRequest(route: string, params?: any, selector?: BlestSelector): {
+export declare const blestRequest: (route: string, params?: any, selector?: BlestSelector) => {
     data: any;
     error: any;
     loading: import("vue").Ref<boolean>;
 };
-export declare function blestCommand(route: string, selector?: BlestSelector): (((params?: any) => void) | {
+export declare const blestLazyRequest: (route: string, selector?: BlestSelector) => (((params?: any) => void) | {
+    data: any;
+    error: any;
+    loading: import("vue").Ref<boolean>;
+})[];
+export declare const blestCommand: (route: string, selector?: BlestSelector) => (((params?: any) => void) | {
     data: any;
     error: any;
     loading: import("vue").Ref<boolean>;

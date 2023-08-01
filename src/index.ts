@@ -25,7 +25,13 @@ const BlestSymbol = Symbol()
 
 interface BlestProviderProps {
     url: string
-    options: any
+    options: BlestProviderOptions
+}
+
+interface BlestProviderOptions {
+  maxBatchSize?: number
+  bufferDelay?: number
+  headers?: any
 }
 
 export const BlestProvider = {
@@ -37,69 +43,82 @@ export const BlestProvider = {
     }
   },
   setup({ url, options }: BlestProviderProps, { slots }: SetupContext) {
-    const queue = reactive<[string, string, any?, any?][]>([])
+    // const queue = reactive<[string, string, any?, any?][]>([])
     const state = reactive<BlestGlobalState>({})
+    const queue = ref<[string, string, any?, any?][]>([])
     const timeout = ref<number | null>(null)
 
+    const maxBatchSize = options?.maxBatchSize && typeof options.maxBatchSize === 'number' && options.maxBatchSize > 0 && Math.round(options.maxBatchSize) === options.maxBatchSize && options.maxBatchSize || 25
+    const bufferDelay = options?.bufferDelay && typeof options.bufferDelay === 'number' && options.bufferDelay > 0 && Math.round(options.bufferDelay) === options.bufferDelay && options.bufferDelay || 10
+    const headers = options?.headers && typeof options.headers === 'object' ? options.headers : {}
+
     const enqueue = (id: string, route: string, params?: any, selector?: BlestSelector) => {
-        if (timeout.value) clearTimeout(timeout.value)
         state[id] = {
             loading: false,
             error: null,
             data: null
         }
-        queue.push([id, route, params, selector])
+        queue.value.push([id, route, params, selector])
+        if (!timeout.value) {
+            timeout.value = setTimeout(process, bufferDelay)
+        }
     }
 
-    watchEffect(() => {
-        if (queue.length > 0) {
-            const headers = options?.headers && typeof options?.headers === 'object' ? options.headers : {}
-            const myQueue = [...queue]
-            const requestIds = queue.map((q) => q[0])
-            queue.splice(0)
-            timeout.value = setTimeout(() => {
-                for (let i = 0; i < requestIds.length; i++) {
-                    const id = requestIds[i]
-                    state[id] = {
-                        loading: true,
-                        error: null,
-                        data: null
-                    }
-                }
-                fetch(url, {
-                    body: JSON.stringify(myQueue),
-                    mode: 'cors',
-                    method: 'POST',
-                    headers: {
-                        ...headers,
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    }
-                })
-                .then(async (result) => {
-                    const results = await result.json()
-                    for (let i = 0; i < results.length; i++) {
-                        const item = results[i]
-                        state[item[0]] = {
-                            loading: false,
-                            error: item[3],
-                            data: item[2]
-                        }
-                    }
-                })
-                .catch((error) => {
-                    for (let i = 0; i < myQueue.length; i++) {
-                        const id = requestIds[i]
-                        state[id] = {
-                            loading: false,
-                            error: error,
-                            data: null
-                        }
-                    }
-                })
-            }, 1)
+    const process = () => {
+        if (timeout.value) {
+          clearTimeout(timeout.value)
+          timeout.value = null
         }
-    })
+        if (!queue.value.length) {
+            return
+        }
+        const copyQueue: BlestQueueItem[] = queue.value.map((q: BlestQueueItem) => [...q])
+        queue.value.splice(0)
+        const batchCount = Math.ceil(copyQueue.length / maxBatchSize)
+        for (let i = 0; i < batchCount; i++) {
+          const myQueue = copyQueue.slice(i * maxBatchSize, (i + 1) * maxBatchSize)
+          const requestIds = myQueue.map((q: BlestQueueItem) => q[0])
+          for (let i = 0; i < requestIds.length; i++) {
+              const id = requestIds[i]
+              state[id] = {
+                  loading: true,
+                  error: null,
+                  data: null
+              }
+          }
+          fetch(url, {
+              body: JSON.stringify(myQueue),
+              mode: 'cors',
+              method: 'POST',
+              headers: {
+                  ...headers,
+                  "Content-Type": "application/json",
+                  "Accept": "application/json"
+              }
+          })
+          .then(async (result) => {
+              const results = await result.json()
+              for (let i = 0; i < results.length; i++) {
+                  const item = results[i]
+                  state[item[0]] = {
+                      loading: false,
+                      error: item[3],
+                      data: item[2]
+                  }
+              }
+          })
+          .catch((error) => {
+              for (let i = 0; i < myQueue.length; i++) {
+                  const id = requestIds[i]
+                  state[id] = {
+                      loading: false,
+                      error: error,
+                      data: null
+                  }
+              }
+          })
+        }
+    }
 
     provide(BlestSymbol, { queue, state, enqueue })
 
@@ -120,7 +139,7 @@ export function blestContext() {
   return context
 }
 
-export function blestRequest(route: string, params?: any, selector?: BlestSelector) {
+export const blestRequest = (route: string, params?: any, selector?: BlestSelector) => {
     // @ts-expect-error
     const { state, enqueue } = inject<BlestContextValue>(BlestSymbol)
     const requestId = ref<string | null>(null)
@@ -152,7 +171,7 @@ export function blestRequest(route: string, params?: any, selector?: BlestSelect
     }
 }
 
-export function blestCommand(route: string, selector?: BlestSelector) {
+export const blestLazyRequest = (route: string, selector?: BlestSelector) => {
     // @ts-expect-error
     const { state, enqueue } = inject<BlestContextValue>(BlestSymbol)
     const requestId = ref<string | null>(null)
@@ -181,3 +200,5 @@ export function blestCommand(route: string, selector?: BlestSelector) {
         loading
     }]
 }
+
+export const blestCommand = blestLazyRequest

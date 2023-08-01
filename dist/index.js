@@ -56,7 +56,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.blestCommand = exports.blestRequest = exports.blestContext = exports.BlestProvider = void 0;
+exports.blestCommand = exports.blestLazyRequest = exports.blestRequest = exports.blestContext = exports.BlestProvider = void 0;
 var vue_1 = require("vue");
 var uuid_1 = require("uuid");
 var BlestSymbol = Symbol();
@@ -72,72 +72,87 @@ exports.BlestProvider = {
         var _this = this;
         var url = _a.url, options = _a.options;
         var slots = _b.slots;
-        var queue = (0, vue_1.reactive)([]);
+        // const queue = reactive<[string, string, any?, any?][]>([])
         var state = (0, vue_1.reactive)({});
+        var queue = (0, vue_1.ref)([]);
         var timeout = (0, vue_1.ref)(null);
+        var maxBatchSize = (options === null || options === void 0 ? void 0 : options.maxBatchSize) && typeof options.maxBatchSize === 'number' && options.maxBatchSize > 0 && Math.round(options.maxBatchSize) === options.maxBatchSize && options.maxBatchSize || 25;
+        var bufferDelay = (options === null || options === void 0 ? void 0 : options.bufferDelay) && typeof options.bufferDelay === 'number' && options.bufferDelay > 0 && Math.round(options.bufferDelay) === options.bufferDelay && options.bufferDelay || 10;
+        var headers = (options === null || options === void 0 ? void 0 : options.headers) && typeof options.headers === 'object' ? options.headers : {};
         var enqueue = function (id, route, params, selector) {
-            if (timeout.value)
-                clearTimeout(timeout.value);
             state[id] = {
                 loading: false,
                 error: null,
                 data: null
             };
-            queue.push([id, route, params, selector]);
+            queue.value.push([id, route, params, selector]);
+            if (!timeout.value) {
+                timeout.value = setTimeout(process, bufferDelay);
+            }
         };
-        (0, vue_1.watchEffect)(function () {
-            if (queue.length > 0) {
-                var headers_1 = (options === null || options === void 0 ? void 0 : options.headers) && typeof (options === null || options === void 0 ? void 0 : options.headers) === 'object' ? options.headers : {};
-                var myQueue_1 = __spreadArray([], queue, true);
-                var requestIds_1 = queue.map(function (q) { return q[0]; });
-                queue.splice(0);
-                timeout.value = setTimeout(function () {
-                    for (var i = 0; i < requestIds_1.length; i++) {
-                        var id = requestIds_1[i];
+        var process = function () {
+            console.log('process');
+            if (timeout.value) {
+                clearTimeout(timeout.value);
+                timeout.value = null;
+            }
+            if (!queue.value.length) {
+                return;
+            }
+            var copyQueue = queue.value.map(function (q) { return __spreadArray([], q, true); });
+            queue.value.splice(0);
+            var batchCount = Math.ceil(copyQueue.length / maxBatchSize);
+            var _loop_1 = function (i) {
+                var myQueue = copyQueue.slice(i * maxBatchSize, (i + 1) * maxBatchSize);
+                var requestIds = myQueue.map(function (q) { return q[0]; });
+                for (var i_1 = 0; i_1 < requestIds.length; i_1++) {
+                    var id = requestIds[i_1];
+                    state[id] = {
+                        loading: true,
+                        error: null,
+                        data: null
+                    };
+                }
+                fetch(url, {
+                    body: JSON.stringify(myQueue),
+                    mode: 'cors',
+                    method: 'POST',
+                    headers: __assign(__assign({}, headers), { "Content-Type": "application/json", "Accept": "application/json" })
+                })
+                    .then(function (result) { return __awaiter(_this, void 0, void 0, function () {
+                    var results, i_2, item;
+                    return __generator(this, function (_a) {
+                        switch (_a.label) {
+                            case 0: return [4 /*yield*/, result.json()];
+                            case 1:
+                                results = _a.sent();
+                                for (i_2 = 0; i_2 < results.length; i_2++) {
+                                    item = results[i_2];
+                                    state[item[0]] = {
+                                        loading: false,
+                                        error: item[3],
+                                        data: item[2]
+                                    };
+                                }
+                                return [2 /*return*/];
+                        }
+                    });
+                }); })
+                    .catch(function (error) {
+                    for (var i_3 = 0; i_3 < myQueue.length; i_3++) {
+                        var id = requestIds[i_3];
                         state[id] = {
-                            loading: true,
-                            error: null,
+                            loading: false,
+                            error: error,
                             data: null
                         };
                     }
-                    fetch(url, {
-                        body: JSON.stringify(myQueue_1),
-                        mode: 'cors',
-                        method: 'POST',
-                        headers: __assign(__assign({}, headers_1), { "Content-Type": "application/json", "Accept": "application/json" })
-                    })
-                        .then(function (result) { return __awaiter(_this, void 0, void 0, function () {
-                        var results, i, item;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0: return [4 /*yield*/, result.json()];
-                                case 1:
-                                    results = _a.sent();
-                                    for (i = 0; i < results.length; i++) {
-                                        item = results[i];
-                                        state[item[0]] = {
-                                            loading: false,
-                                            error: item[3],
-                                            data: item[2]
-                                        };
-                                    }
-                                    return [2 /*return*/];
-                            }
-                        });
-                    }); })
-                        .catch(function (error) {
-                        for (var i = 0; i < myQueue_1.length; i++) {
-                            var id = requestIds_1[i];
-                            state[id] = {
-                                loading: false,
-                                error: error,
-                                data: null
-                            };
-                        }
-                    });
-                }, 1);
+                });
+            };
+            for (var i = 0; i < batchCount; i++) {
+                _loop_1(i);
             }
-        });
+        };
         (0, vue_1.provide)(BlestSymbol, { queue: queue, state: state, enqueue: enqueue });
         if (!slots.default) {
             throw new Error('Expecting a default slot');
@@ -154,7 +169,7 @@ function blestContext() {
     return context;
 }
 exports.blestContext = blestContext;
-function blestRequest(route, params, selector) {
+var blestRequest = function (route, params, selector) {
     // @ts-expect-error
     var _a = (0, vue_1.inject)(BlestSymbol), state = _a.state, enqueue = _a.enqueue;
     var requestId = (0, vue_1.ref)(null);
@@ -182,9 +197,9 @@ function blestRequest(route, params, selector) {
         error: error,
         loading: loading
     };
-}
+};
 exports.blestRequest = blestRequest;
-function blestCommand(route, selector) {
+var blestLazyRequest = function (route, selector) {
     // @ts-expect-error
     var _a = (0, vue_1.inject)(BlestSymbol), state = _a.state, enqueue = _a.enqueue;
     var requestId = (0, vue_1.ref)(null);
@@ -209,5 +224,6 @@ function blestCommand(route, selector) {
             error: error,
             loading: loading
         }];
-}
-exports.blestCommand = blestCommand;
+};
+exports.blestLazyRequest = blestLazyRequest;
+exports.blestCommand = exports.blestLazyRequest;
