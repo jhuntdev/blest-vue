@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3>["hello", null, ["hello"]]</h3>
+    <h3>["hello"]</h3>
     <p v-if="loading">Loading...</p>
     <p v-else-if="error">Error: {{ error.message }}</p>
     <p v-else>{{ JSON.stringify(data) }}</p>
@@ -11,7 +11,7 @@
 import { blestRequest } from 'blest-vue'
 export default {
   setup() {
-    const queryState = blestRequest('hello', null, ['hello'])
+    const queryState = blestRequest('hello')
     return queryState
   }
 };

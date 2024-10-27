@@ -6,7 +6,7 @@ import Component4 from './components/Component4.vue'
 </script>
 
 <template>
-  <BlestProvider url='http://localhost:8080'>
+  <BlestProvider url='http://localhost:8080' options={{ httpHeaders: { 'Authorization': 'Bearer token' } }}>
     <div>
       <h1 style="margin-top:0;">BLEST Vue Example</h1>
       <hr />

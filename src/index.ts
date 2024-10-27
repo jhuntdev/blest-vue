@@ -11,9 +11,7 @@ interface BlestGlobalState {
     [id: string]: BlestRequestState;
 }
 
-type BlestSelector = Array<string | BlestSelector>
-
-type BlestQueueItem = [string, string, any?, BlestSelector?]
+type BlestQueueItem = [string, string, any?, any?]
 
 interface BlestContextValue {
     queue: BlestQueueItem[],
@@ -31,7 +29,7 @@ interface BlestProviderProps {
 interface BlestProviderOptions {
   maxBatchSize?: number
   bufferDelay?: number
-  headers?: any
+  httpHeaders?: any
 }
 
 export const BlestProvider = {
@@ -50,15 +48,15 @@ export const BlestProvider = {
 
     const maxBatchSize = options?.maxBatchSize && typeof options.maxBatchSize === 'number' && options.maxBatchSize > 0 && Math.round(options.maxBatchSize) === options.maxBatchSize && options.maxBatchSize || 25
     const bufferDelay = options?.bufferDelay && typeof options.bufferDelay === 'number' && options.bufferDelay > 0 && Math.round(options.bufferDelay) === options.bufferDelay && options.bufferDelay || 10
-    const headers = options?.headers && typeof options.headers === 'object' ? options.headers : {}
+    const httpHeaders = options?.httpHeaders && typeof options.httpHeaders === 'object' ? options.httpHeaders : {}
 
-    const enqueue = (id: string, route: string, params?: any, selector?: BlestSelector) => {
+    const enqueue = (id: string, route: string, params?: any, headers?: any) => {
         state[id] = {
             loading: false,
             error: null,
             data: null
         }
-        queue.value.push([id, route, params, selector])
+        queue.value.push([id, route, params, headers])
         if (!timeout.value) {
             timeout.value = setTimeout(() => { process() }, bufferDelay)
         }
@@ -91,7 +89,7 @@ export const BlestProvider = {
               mode: 'cors',
               method: 'POST',
               headers: {
-                  ...headers,
+                  ...httpHeaders,
                   "Content-Type": "application/json",
                   "Accept": "application/json"
               }
@@ -139,7 +137,7 @@ export function blestContext() {
   return context
 }
 
-export const blestRequest = (route: string, params?: any, selector?: BlestSelector) => {
+export const blestRequest = (route: string, params?: any, headers?: any) => {
     // @ts-expect-error
     const { state, enqueue } = inject<BlestContextValue>(BlestSymbol)
     const requestId = ref<string | null>(null)
@@ -149,12 +147,12 @@ export const blestRequest = (route: string, params?: any, selector?: BlestSelect
     const lastRequest = ref<string | null>(null)
 
     watchEffect(() => {
-        const requestHash = route + JSON.stringify(params || {}) + JSON.stringify(selector || {})
+        const requestHash = route + JSON.stringify(params || {}) + JSON.stringify(headers || {})
         if (lastRequest.value !== requestHash) {
             lastRequest.value = requestHash
             const id = uuid()
             requestId.value = id
-            enqueue(id, route, params, selector)
+            enqueue(id, route, params, headers)
         }
         if (requestId.value && state[requestId.value]) {
             const reqState = state[requestId.value]
@@ -171,7 +169,7 @@ export const blestRequest = (route: string, params?: any, selector?: BlestSelect
     }
 }
 
-export const blestLazyRequest = (route: string, selector?: BlestSelector) => {
+export const blestLazyRequest = (route: string, headers?: any) => {
     // @ts-expect-error
     const { state, enqueue } = inject<BlestContextValue>(BlestSymbol)
     const requestId = ref<string | null>(null)
@@ -182,7 +180,7 @@ export const blestLazyRequest = (route: string, selector?: BlestSelector) => {
     const request = (params?: any) => {
         const id = uuid()
         requestId.value = id
-        enqueue(id, route, params, selector)
+        enqueue(id, route, params, headers)
     }
 
     watchEffect(() => {
@@ -200,5 +198,3 @@ export const blestLazyRequest = (route: string, selector?: BlestSelector) => {
         loading
     }]
 }
-
-export const blestCommand = blestLazyRequest

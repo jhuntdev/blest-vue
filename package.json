@@ -26,7 +26,7 @@
     "watch": "tsc -w",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "JHunt <blest@jhunt.dev>",
+  "author": "JHunt <hello@jhunt.dev>",
   "license": "MIT",
   "peerDependencies": {
     "vue": "^3.0.0"
