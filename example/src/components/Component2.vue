@@ -9,11 +9,11 @@
 
 <script>
 import { ref, watch } from 'vue'
-import { blestCommand } from 'blest-vue'
+import { blestLazyRequest } from 'blest-vue'
 export default {
   setup() {
     const name = ref('Steve')
-    const [greet, queryState]= blestCommand('greet')
+    const [greet, queryState]= blestLazyRequest('greet', { auth: 'myToken' })
     greet({ name: name.value })
     watch(name, (newName) => {
       greet({ name: newName })

@@ -1,5 +1,4 @@
 import { SetupContext } from 'vue';
-type BlestSelector = Array<string | BlestSelector>;
 interface BlestProviderProps {
     url: string;
     options: BlestProviderOptions;
@@ -7,7 +6,7 @@ interface BlestProviderProps {
 interface BlestProviderOptions {
     maxBatchSize?: number;
     bufferDelay?: number;
-    headers?: any;
+    httpHeaders?: any;
 }
 export declare const BlestProvider: {
     props: {
@@ -22,19 +21,14 @@ export declare const BlestProvider: {
     }>[];
 };
 export declare function blestContext(): unknown;
-export declare const blestRequest: (route: string, params?: any, selector?: BlestSelector) => {
-    data: any;
-    error: any;
-    loading: import("vue").Ref<boolean>;
+export declare const blestRequest: (route: string, params?: any, headers?: any) => {
+    data: import("vue").Ref<any, any>;
+    error: import("vue").Ref<any, any>;
+    loading: import("vue").Ref<boolean, boolean>;
 };
-export declare const blestLazyRequest: (route: string, selector?: BlestSelector) => (((params?: any) => void) | {
-    data: any;
-    error: any;
-    loading: import("vue").Ref<boolean>;
-})[];
-export declare const blestCommand: (route: string, selector?: BlestSelector) => (((params?: any) => void) | {
-    data: any;
-    error: any;
-    loading: import("vue").Ref<boolean>;
+export declare const blestLazyRequest: (route: string, headers?: any) => (((params?: any) => void) | {
+    data: import("vue").Ref<any, any>;
+    error: import("vue").Ref<any, any>;
+    loading: import("vue").Ref<boolean, boolean>;
 })[];
 export {};

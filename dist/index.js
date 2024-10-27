@@ -20,8 +20,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -56,7 +56,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.blestCommand = exports.blestLazyRequest = exports.blestRequest = exports.blestContext = exports.BlestProvider = void 0;
+exports.blestLazyRequest = exports.blestRequest = exports.BlestProvider = void 0;
+exports.blestContext = blestContext;
 var vue_1 = require("vue");
 var uuid_1 = require("uuid");
 var BlestSymbol = Symbol();
@@ -78,20 +79,19 @@ exports.BlestProvider = {
         var timeout = (0, vue_1.ref)(null);
         var maxBatchSize = (options === null || options === void 0 ? void 0 : options.maxBatchSize) && typeof options.maxBatchSize === 'number' && options.maxBatchSize > 0 && Math.round(options.maxBatchSize) === options.maxBatchSize && options.maxBatchSize || 25;
         var bufferDelay = (options === null || options === void 0 ? void 0 : options.bufferDelay) && typeof options.bufferDelay === 'number' && options.bufferDelay > 0 && Math.round(options.bufferDelay) === options.bufferDelay && options.bufferDelay || 10;
-        var headers = (options === null || options === void 0 ? void 0 : options.headers) && typeof options.headers === 'object' ? options.headers : {};
-        var enqueue = function (id, route, params, selector) {
+        var httpHeaders = (options === null || options === void 0 ? void 0 : options.httpHeaders) && typeof options.httpHeaders === 'object' ? options.httpHeaders : {};
+        var enqueue = function (id, route, params, headers) {
             state[id] = {
                 loading: false,
                 error: null,
                 data: null
             };
-            queue.value.push([id, route, params, selector]);
+            queue.value.push([id, route, params, headers]);
             if (!timeout.value) {
-                timeout.value = setTimeout(process, bufferDelay);
+                timeout.value = setTimeout(function () { process(); }, bufferDelay);
             }
         };
         var process = function () {
-            console.log('process');
             if (timeout.value) {
                 clearTimeout(timeout.value);
                 timeout.value = null;
@@ -117,7 +117,7 @@ exports.BlestProvider = {
                     body: JSON.stringify(myQueue),
                     mode: 'cors',
                     method: 'POST',
-                    headers: __assign(__assign({}, headers), { "Content-Type": "application/json", "Accept": "application/json" })
+                    headers: __assign(__assign({}, httpHeaders), { "Content-Type": "application/json", "Accept": "application/json" })
                 })
                     .then(function (result) { return __awaiter(_this, void 0, void 0, function () {
                     var results, i_2, item;
@@ -168,8 +168,7 @@ function blestContext() {
     });
     return context;
 }
-exports.blestContext = blestContext;
-var blestRequest = function (route, params, selector) {
+var blestRequest = function (route, params, headers) {
     // @ts-expect-error
     var _a = (0, vue_1.inject)(BlestSymbol), state = _a.state, enqueue = _a.enqueue;
     var requestId = (0, vue_1.ref)(null);
@@ -178,12 +177,12 @@ var blestRequest = function (route, params, selector) {
     var loading = (0, vue_1.ref)(false);
     var lastRequest = (0, vue_1.ref)(null);
     (0, vue_1.watchEffect)(function () {
-        var requestHash = route + JSON.stringify(params || {}) + JSON.stringify(selector || {});
+        var requestHash = route + JSON.stringify(params || {}) + JSON.stringify(headers || {});
         if (lastRequest.value !== requestHash) {
             lastRequest.value = requestHash;
-            var id = (0, uuid_1.v4)();
+            var id = (0, uuid_1.v1)();
             requestId.value = id;
-            enqueue(id, route, params, selector);
+            enqueue(id, route, params, headers);
         }
         if (requestId.value && state[requestId.value]) {
             var reqState = state[requestId.value];
@@ -199,7 +198,7 @@ var blestRequest = function (route, params, selector) {
     };
 };
 exports.blestRequest = blestRequest;
-var blestLazyRequest = function (route, selector) {
+var blestLazyRequest = function (route, headers) {
     // @ts-expect-error
     var _a = (0, vue_1.inject)(BlestSymbol), state = _a.state, enqueue = _a.enqueue;
     var requestId = (0, vue_1.ref)(null);
@@ -207,9 +206,9 @@ var blestLazyRequest = function (route, selector) {
     var error = (0, vue_1.ref)(null);
     var loading = (0, vue_1.ref)(false);
     var request = function (params) {
-        var id = (0, uuid_1.v4)();
+        var id = (0, uuid_1.v1)();
         requestId.value = id;
-        enqueue(id, route, params, selector);
+        enqueue(id, route, params, headers);
     };
     (0, vue_1.watchEffect)(function () {
         if (requestId.value && state[requestId.value]) {
@@ -226,4 +225,3 @@ var blestLazyRequest = function (route, selector) {
         }];
 };
 exports.blestLazyRequest = blestLazyRequest;
-exports.blestCommand = exports.blestLazyRequest;
