@@ -1,5 +1,5 @@
 import { ref, reactive, provide, inject, onMounted, watchEffect, SetupContext } from 'vue'
-import { v4 as uuidv4 } from 'uuid'
+import { v1 as uuid } from 'uuid'
 
 interface BlestRequestState {
     loading: boolean;
@@ -152,7 +152,7 @@ export const blestRequest = (route: string, params?: any, selector?: BlestSelect
         const requestHash = route + JSON.stringify(params || {}) + JSON.stringify(selector || {})
         if (lastRequest.value !== requestHash) {
             lastRequest.value = requestHash
-            const id = uuidv4()
+            const id = uuid()
             requestId.value = id
             enqueue(id, route, params, selector)
         }
@@ -180,7 +180,7 @@ export const blestLazyRequest = (route: string, selector?: BlestSelector) => {
     const loading = ref<boolean>(false)
   
     const request = (params?: any) => {
-        const id = uuidv4()
+        const id = uuid()
         requestId.value = id
         enqueue(id, route, params, selector)
     }
