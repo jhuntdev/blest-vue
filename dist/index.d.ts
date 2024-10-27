@@ -21,12 +21,12 @@ export declare const BlestProvider: {
     }>[];
 };
 export declare function blestContext(): unknown;
-export declare const blestRequest: (route: string, params?: any, headers?: any) => {
+export declare const blestRequest: (route: string, body?: any, headers?: any) => {
     data: import("vue").Ref<any, any>;
     error: import("vue").Ref<any, any>;
     loading: import("vue").Ref<boolean, boolean>;
 };
-export declare const blestLazyRequest: (route: string, headers?: any) => (((params?: any) => void) | {
+export declare const blestLazyRequest: (route: string, headers?: any) => (((body?: any) => void) | {
     data: import("vue").Ref<any, any>;
     error: import("vue").Ref<any, any>;
     loading: import("vue").Ref<boolean, boolean>;

@@ -55,11 +55,15 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blestLazyRequest = exports.blestRequest = exports.BlestProvider = void 0;
 exports.blestContext = blestContext;
 var vue_1 = require("vue");
 var uuid_1 = require("uuid");
+var isEqual_1 = __importDefault(require("lodash/isEqual"));
 var BlestSymbol = Symbol();
 exports.BlestProvider = {
     props: {
@@ -80,13 +84,13 @@ exports.BlestProvider = {
         var maxBatchSize = (options === null || options === void 0 ? void 0 : options.maxBatchSize) && typeof options.maxBatchSize === 'number' && options.maxBatchSize > 0 && Math.round(options.maxBatchSize) === options.maxBatchSize && options.maxBatchSize || 25;
         var bufferDelay = (options === null || options === void 0 ? void 0 : options.bufferDelay) && typeof options.bufferDelay === 'number' && options.bufferDelay > 0 && Math.round(options.bufferDelay) === options.bufferDelay && options.bufferDelay || 10;
         var httpHeaders = (options === null || options === void 0 ? void 0 : options.httpHeaders) && typeof options.httpHeaders === 'object' ? options.httpHeaders : {};
-        var enqueue = function (id, route, params, headers) {
+        var enqueue = function (id, route, body, headers) {
             state[id] = {
                 loading: false,
                 error: null,
                 data: null
             };
-            queue.value.push([id, route, params, headers]);
+            queue.value.push([id, route, body, headers]);
             if (!timeout.value) {
                 timeout.value = setTimeout(function () { process(); }, bufferDelay);
             }
@@ -168,7 +172,7 @@ function blestContext() {
     });
     return context;
 }
-var blestRequest = function (route, params, headers) {
+var blestRequest = function (route, body, headers) {
     // @ts-expect-error
     var _a = (0, vue_1.inject)(BlestSymbol), state = _a.state, enqueue = _a.enqueue;
     var requestId = (0, vue_1.ref)(null);
@@ -177,18 +181,24 @@ var blestRequest = function (route, params, headers) {
     var loading = (0, vue_1.ref)(false);
     var lastRequest = (0, vue_1.ref)(null);
     (0, vue_1.watchEffect)(function () {
-        var requestHash = route + JSON.stringify(params || {}) + JSON.stringify(headers || {});
+        var requestHash = route + JSON.stringify(body || {}) + JSON.stringify(headers || {});
         if (lastRequest.value !== requestHash) {
             lastRequest.value = requestHash;
             var id = (0, uuid_1.v1)();
             requestId.value = id;
-            enqueue(id, route, params, headers);
+            enqueue(id, route, body, headers);
         }
         if (requestId.value && state[requestId.value]) {
             var reqState = state[requestId.value];
-            data.value = reqState.data;
-            error.value = reqState.error;
-            loading.value = reqState.loading;
+            if (!(0, isEqual_1.default)(data.value, reqState.data)) {
+                data.value = reqState.data;
+            }
+            if (!(0, isEqual_1.default)(error.value, reqState.error)) {
+                error.value = reqState.error;
+            }
+            if (loading.value !== reqState.loading) {
+                loading.value = reqState.loading;
+            }
         }
     });
     return {
@@ -205,17 +215,26 @@ var blestLazyRequest = function (route, headers) {
     var data = (0, vue_1.ref)(null);
     var error = (0, vue_1.ref)(null);
     var loading = (0, vue_1.ref)(false);
-    var request = function (params) {
+    var request = function (body) {
         var id = (0, uuid_1.v1)();
         requestId.value = id;
-        enqueue(id, route, params, headers);
+        enqueue(id, route, body, headers);
     };
     (0, vue_1.watchEffect)(function () {
         if (requestId.value && state[requestId.value]) {
             var reqState = state[requestId.value];
-            data.value = reqState.data;
-            error.value = reqState.error;
-            loading.value = reqState.loading;
+            // data.value = reqState.data
+            // error.value = reqState.error
+            // loading.value = reqState.loading
+            if (!(0, isEqual_1.default)(data.value, reqState.data)) {
+                data.value = reqState.data;
+            }
+            if (!(0, isEqual_1.default)(error.value, reqState.error)) {
+                error.value = reqState.error;
+            }
+            if (loading.value !== reqState.loading) {
+                loading.value = reqState.loading;
+            }
         }
     });
     return [request, {

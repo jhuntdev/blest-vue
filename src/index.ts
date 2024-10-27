@@ -1,5 +1,6 @@
 import { ref, reactive, provide, inject, onMounted, watchEffect, SetupContext } from 'vue'
 import { v1 as uuid } from 'uuid'
+import isEqual from 'lodash/isEqual'
 
 interface BlestRequestState {
     loading: boolean;
@@ -50,13 +51,13 @@ export const BlestProvider = {
     const bufferDelay = options?.bufferDelay && typeof options.bufferDelay === 'number' && options.bufferDelay > 0 && Math.round(options.bufferDelay) === options.bufferDelay && options.bufferDelay || 10
     const httpHeaders = options?.httpHeaders && typeof options.httpHeaders === 'object' ? options.httpHeaders : {}
 
-    const enqueue = (id: string, route: string, params?: any, headers?: any) => {
+    const enqueue = (id: string, route: string, body?: any, headers?: any) => {
         state[id] = {
-            loading: false,
+            loading: true,
             error: null,
             data: null
         }
-        queue.value.push([id, route, params, headers])
+        queue.value.push([id, route, body, headers])
         if (!timeout.value) {
             timeout.value = setTimeout(() => { process() }, bufferDelay)
         }
@@ -76,14 +77,14 @@ export const BlestProvider = {
         for (let i = 0; i < batchCount; i++) {
           const myQueue = copyQueue.slice(i * maxBatchSize, (i + 1) * maxBatchSize)
           const requestIds = myQueue.map((q: BlestQueueItem) => q[0])
-          for (let i = 0; i < requestIds.length; i++) {
-              const id = requestIds[i]
-              state[id] = {
-                  loading: true,
-                  error: null,
-                  data: null
-              }
-          }
+        //   for (let i = 0; i < requestIds.length; i++) {
+        //       const id = requestIds[i]
+        //       state[id] = {
+        //           loading: true,
+        //           error: null,
+        //           data: null
+        //       }
+        //   }
           fetch(url, {
               body: JSON.stringify(myQueue),
               mode: 'cors',
@@ -137,7 +138,7 @@ export function blestContext() {
   return context
 }
 
-export const blestRequest = (route: string, params?: any, headers?: any) => {
+export const blestRequest = (route: string, body?: any, headers?: any) => {
     // @ts-expect-error
     const { state, enqueue } = inject<BlestContextValue>(BlestSymbol)
     const requestId = ref<string | null>(null)
@@ -147,18 +148,24 @@ export const blestRequest = (route: string, params?: any, headers?: any) => {
     const lastRequest = ref<string | null>(null)
 
     watchEffect(() => {
-        const requestHash = route + JSON.stringify(params || {}) + JSON.stringify(headers || {})
+        const requestHash = route + JSON.stringify(body || {}) + JSON.stringify(headers || {})
         if (lastRequest.value !== requestHash) {
             lastRequest.value = requestHash
             const id = uuid()
             requestId.value = id
-            enqueue(id, route, params, headers)
+            enqueue(id, route, body, headers)
         }
         if (requestId.value && state[requestId.value]) {
             const reqState = state[requestId.value]
-            data.value = reqState.data
-            error.value = reqState.error
-            loading.value = reqState.loading
+            if (!isEqual(data.value, reqState.data)) {
+                data.value = reqState.data
+            }
+            if (!isEqual(error.value, reqState.error)) {
+                error.value = reqState.error
+            }
+            if (loading.value !== reqState.loading) {
+                loading.value = reqState.loading
+            }
         }
     })
   
@@ -177,18 +184,27 @@ export const blestLazyRequest = (route: string, headers?: any) => {
     const error = ref<any | null>(null)
     const loading = ref<boolean>(false)
   
-    const request = (params?: any) => {
+    const request = (body?: any) => {
         const id = uuid()
         requestId.value = id
-        enqueue(id, route, params, headers)
+        enqueue(id, route, body, headers)
     }
 
     watchEffect(() => {
         if (requestId.value && state[requestId.value]) {
             const reqState = state[requestId.value]
-            data.value = reqState.data
-            error.value = reqState.error
-            loading.value = reqState.loading
+            // data.value = reqState.data
+            // error.value = reqState.error
+            // loading.value = reqState.loading
+            if (!isEqual(data.value, reqState.data)) {
+                data.value = reqState.data
+            }
+            if (!isEqual(error.value, reqState.error)) {
+                error.value = reqState.error
+            }
+            if (loading.value !== reqState.loading) {
+                loading.value = reqState.loading
+            }
         }
     })
 
