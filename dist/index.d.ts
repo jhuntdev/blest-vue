@@ -8,6 +8,14 @@ interface BlestProviderOptions {
     bufferDelay?: number;
     httpHeaders?: any;
 }
+type BlestSelector = Array<string | BlestSelector>;
+interface BlestRequestOptions {
+    skip?: boolean;
+    select?: BlestSelector;
+}
+interface BlestLazyRequestOptions {
+    select?: BlestSelector;
+}
 export declare const BlestProvider: {
     props: {
         url: StringConstructor;
@@ -21,12 +29,12 @@ export declare const BlestProvider: {
     }>[];
 };
 export declare function blestContext(): unknown;
-export declare const blestRequest: (route: string, body?: any, headers?: any) => {
+export declare const blestRequest: (route: string, body?: any, options?: BlestRequestOptions) => {
     data: import("vue").Ref<any, any>;
     error: import("vue").Ref<any, any>;
     loading: import("vue").Ref<boolean, boolean>;
 };
-export declare const blestLazyRequest: (route: string, headers?: any) => (((body?: any) => void) | {
+export declare const blestLazyRequest: (route: string, options?: BlestLazyRequestOptions) => (((body?: any) => void) | {
     data: import("vue").Ref<any, any>;
     error: import("vue").Ref<any, any>;
     loading: import("vue").Ref<boolean, boolean>;

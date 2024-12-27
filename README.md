@@ -66,7 +66,7 @@ Use the `blestRequest` function to perform passive requests on mount and when pa
 import { blestRequest } from 'blest-vue'
 export default {
   setup() {
-    const { data, error, loading } = blestRequest('listItems', { limit: 24 }, ['data', ['pageInfo', ['endCursor', 'hasNextPage']]])
+    const { data, error, loading } = blestRequest('listItems', { limit: 24 }, { select: ['nodes', ['pageInfo', ['endCursor', 'hasNextPage']]] })
 
     return { data, error, loading }
   }
@@ -88,10 +88,10 @@ Use the `blestCommand` function to generate a request function you can call when
 </template>
 
 <script>
-import { blestCommand } from 'blest-vue'
+import { blestLazyRequest } from 'blest-vue'
 export default {
   setup() {
-    const [submitForm, { data, loading, error }] = blestCommand('submitForm')
+    const [submitForm, { data, loading, error }] = blestLazyRequest('submitForm')
 
     const handleSubmit = () => {
       submitForm({

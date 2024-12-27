@@ -33,6 +33,17 @@ interface BlestProviderOptions {
   httpHeaders?: any
 }
 
+type BlestSelector = Array<string | BlestSelector>
+
+interface BlestRequestOptions {
+  skip?: boolean
+  select?: BlestSelector
+}
+
+interface BlestLazyRequestOptions {
+  select?: BlestSelector
+}
+
 export const BlestProvider = {
   props: {
     url: String,
@@ -138,7 +149,16 @@ export function blestContext() {
   return context
 }
 
-export const blestRequest = (route: string, body?: any, headers?: any) => {
+const makeBlestHeaders = (options?: BlestRequestOptions|BlestLazyRequestOptions) => {
+    const headers:any = {}
+    if (!options) return headers;
+    if (options.select && Array.isArray(options.select)) {
+        headers._s = options.select
+    }
+    return headers
+}
+
+export const blestRequest = (route: string, body?: any, options?: BlestRequestOptions) => {
     // @ts-expect-error
     const { state, enqueue } = inject<BlestContextValue>(BlestSymbol)
     const requestId = ref<string | null>(null)
@@ -148,6 +168,7 @@ export const blestRequest = (route: string, body?: any, headers?: any) => {
     const lastRequest = ref<string | null>(null)
 
     watchEffect(() => {
+        const headers = makeBlestHeaders(options)
         const requestHash = route + JSON.stringify(body || {}) + JSON.stringify(headers || {})
         if (lastRequest.value !== requestHash) {
             lastRequest.value = requestHash
@@ -176,7 +197,7 @@ export const blestRequest = (route: string, body?: any, headers?: any) => {
     }
 }
 
-export const blestLazyRequest = (route: string, headers?: any) => {
+export const blestLazyRequest = (route: string, options?: BlestLazyRequestOptions) => {
     // @ts-expect-error
     const { state, enqueue } = inject<BlestContextValue>(BlestSymbol)
     const requestId = ref<string | null>(null)
@@ -187,6 +208,7 @@ export const blestLazyRequest = (route: string, headers?: any) => {
     const request = (body?: any) => {
         const id = uuid()
         requestId.value = id
+        const headers = makeBlestHeaders(options)
         enqueue(id, route, body, headers)
     }
 

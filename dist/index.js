@@ -86,7 +86,7 @@ exports.BlestProvider = {
         var httpHeaders = (options === null || options === void 0 ? void 0 : options.httpHeaders) && typeof options.httpHeaders === 'object' ? options.httpHeaders : {};
         var enqueue = function (id, route, body, headers) {
             state[id] = {
-                loading: false,
+                loading: true,
                 error: null,
                 data: null
             };
@@ -109,14 +109,14 @@ exports.BlestProvider = {
             var _loop_1 = function (i) {
                 var myQueue = copyQueue.slice(i * maxBatchSize, (i + 1) * maxBatchSize);
                 var requestIds = myQueue.map(function (q) { return q[0]; });
-                for (var i_1 = 0; i_1 < requestIds.length; i_1++) {
-                    var id = requestIds[i_1];
-                    state[id] = {
-                        loading: true,
-                        error: null,
-                        data: null
-                    };
-                }
+                //   for (let i = 0; i < requestIds.length; i++) {
+                //       const id = requestIds[i]
+                //       state[id] = {
+                //           loading: true,
+                //           error: null,
+                //           data: null
+                //       }
+                //   }
                 fetch(url, {
                     body: JSON.stringify(myQueue),
                     mode: 'cors',
@@ -124,14 +124,14 @@ exports.BlestProvider = {
                     headers: __assign(__assign({}, httpHeaders), { "Content-Type": "application/json", "Accept": "application/json" })
                 })
                     .then(function (result) { return __awaiter(_this, void 0, void 0, function () {
-                    var results, i_2, item;
+                    var results, i_1, item;
                     return __generator(this, function (_a) {
                         switch (_a.label) {
                             case 0: return [4 /*yield*/, result.json()];
                             case 1:
                                 results = _a.sent();
-                                for (i_2 = 0; i_2 < results.length; i_2++) {
-                                    item = results[i_2];
+                                for (i_1 = 0; i_1 < results.length; i_1++) {
+                                    item = results[i_1];
                                     state[item[0]] = {
                                         loading: false,
                                         error: item[3],
@@ -143,8 +143,8 @@ exports.BlestProvider = {
                     });
                 }); })
                     .catch(function (error) {
-                    for (var i_3 = 0; i_3 < myQueue.length; i_3++) {
-                        var id = requestIds[i_3];
+                    for (var i_2 = 0; i_2 < myQueue.length; i_2++) {
+                        var id = requestIds[i_2];
                         state[id] = {
                             loading: false,
                             error: error,
@@ -172,7 +172,16 @@ function blestContext() {
     });
     return context;
 }
-var blestRequest = function (route, body, headers) {
+var makeBlestHeaders = function (options) {
+    var headers = {};
+    if (!options)
+        return headers;
+    if (options.select && Array.isArray(options.select)) {
+        headers._s = options.select;
+    }
+    return headers;
+};
+var blestRequest = function (route, body, options) {
     // @ts-expect-error
     var _a = (0, vue_1.inject)(BlestSymbol), state = _a.state, enqueue = _a.enqueue;
     var requestId = (0, vue_1.ref)(null);
@@ -181,6 +190,7 @@ var blestRequest = function (route, body, headers) {
     var loading = (0, vue_1.ref)(false);
     var lastRequest = (0, vue_1.ref)(null);
     (0, vue_1.watchEffect)(function () {
+        var headers = makeBlestHeaders(options);
         var requestHash = route + JSON.stringify(body || {}) + JSON.stringify(headers || {});
         if (lastRequest.value !== requestHash) {
             lastRequest.value = requestHash;
@@ -208,7 +218,7 @@ var blestRequest = function (route, body, headers) {
     };
 };
 exports.blestRequest = blestRequest;
-var blestLazyRequest = function (route, headers) {
+var blestLazyRequest = function (route, options) {
     // @ts-expect-error
     var _a = (0, vue_1.inject)(BlestSymbol), state = _a.state, enqueue = _a.enqueue;
     var requestId = (0, vue_1.ref)(null);
@@ -218,6 +228,7 @@ var blestLazyRequest = function (route, headers) {
     var request = function (body) {
         var id = (0, uuid_1.v1)();
         requestId.value = id;
+        var headers = makeBlestHeaders(options);
         enqueue(id, route, body, headers);
     };
     (0, vue_1.watchEffect)(function () {
