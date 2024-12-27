@@ -211,10 +211,17 @@ var blestRequest = function (route, body, options) {
             }
         }
     });
+    var refresh = function () {
+        var id = (0, uuid_1.v1)();
+        requestId.value = id;
+        var headers = makeBlestHeaders(options);
+        enqueue(id, route, body, headers);
+    };
     return {
         data: data,
         error: error,
-        loading: loading
+        loading: loading,
+        refresh: refresh
     };
 };
 exports.blestRequest = blestRequest;

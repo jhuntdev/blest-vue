@@ -66,7 +66,7 @@ Use the `blestRequest` function to perform passive requests on mount and when pa
 import { blestRequest } from 'blest-vue'
 export default {
   setup() {
-    const { data, error, loading } = blestRequest('listItems', { limit: 24 }, { select: ['nodes', ['pageInfo', ['endCursor', 'hasNextPage']]] })
+    const { data, error, loading } = blestRequest('listItems', { limit: 24 }, { select: ['edges', ['pageInfo', ['endCursor', 'hasNextPage']]] })
 
     return { data, error, loading }
   }

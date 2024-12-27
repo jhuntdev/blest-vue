@@ -33,6 +33,7 @@ export declare const blestRequest: (route: string, body?: any, options?: BlestRe
     data: import("vue").Ref<any, any>;
     error: import("vue").Ref<any, any>;
     loading: import("vue").Ref<boolean, boolean>;
+    refresh: () => void;
 };
 export declare const blestLazyRequest: (route: string, options?: BlestLazyRequestOptions) => (((body?: any) => void) | {
     data: import("vue").Ref<any, any>;

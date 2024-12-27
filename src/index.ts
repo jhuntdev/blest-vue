@@ -189,11 +189,19 @@ export const blestRequest = (route: string, body?: any, options?: BlestRequestOp
             }
         }
     })
+
+    const refresh = () => {
+        const id = uuid()
+        requestId.value = id
+        const headers = makeBlestHeaders(options)
+        enqueue(id, route, body, headers)
+    }
   
     return {
         data,
         error,
-        loading
+        loading,
+        refresh
     }
 }
 
